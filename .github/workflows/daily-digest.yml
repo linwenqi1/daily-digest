@@ -1,0 +1,56 @@
+name: Daily Digest
+
+on:
+  schedule:
+    # Runs at 14:00 UTC (22:00 Beijing time) every day
+    - cron: "0 14 * * *"
+  workflow_dispatch: {}  # allow manual trigger
+
+jobs:
+  digest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Fetch HN top 10
+        run: python scripts/fetch_news.py
+
+      - name: Enrich with DeepSeek
+        env:
+          DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
+        run: python scripts/enrich_news.py
+
+      - name: Generate markdown digest
+        run: python scripts/generate_digest.py
+
+      - name: Generate HTML email
+        run: python scripts/generate_email.py
+
+      - name: Send email
+        env:
+          EMAIL_USER: ${{ secrets.EMAIL_USER }}
+          EMAIL_PASSWORD: ${{ secrets.EMAIL_PASSWORD }}
+          EMAIL_TO: ${{ secrets.EMAIL_TO }}
+        run: python scripts/send_email.py
+
+      - name: Commit digest to repo
+        if: always()
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add digests/
+          git diff --staged --quiet || git commit -m "Daily digest $(date +%Y-%m-%d)"
+          git pull --rebase origin HEAD
+          git push
