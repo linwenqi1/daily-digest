@@ -38,9 +38,6 @@ jobs:
       - name: Generate markdown digest
         run: python scripts/generate_digest.py
 
-      - name: Generate HTML email
-        run: python scripts/generate_email.py
-
       - name: Send email
         env:
           EMAIL_USER: ${{ secrets.EMAIL_USER }}
@@ -53,7 +50,7 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add digests/
+          git add 'digests/*.md'
           git diff --staged --quiet || git commit -m "Daily digest $(date +%Y-%m-%d)"
           git pull --rebase origin HEAD
           git push

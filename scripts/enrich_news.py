@@ -64,7 +64,7 @@ def extract_article(url: str) -> str | None:
         return None
 
 
-def call_deepseek(system_prompt: str, user_prompt: str) -> str:
+def call_deepseek(system_prompt: str, user_prompt: str, max_tokens: int = 600) -> str:
     """Call DeepSeek chat API and return the response text."""
     try:
         resp = client.chat.completions.create(
@@ -74,7 +74,7 @@ def call_deepseek(system_prompt: str, user_prompt: str) -> str:
                 {"role": "user", "content": user_prompt},
             ],
             temperature=0.7,
-            max_tokens=600,
+            max_tokens=max_tokens,
         )
         return resp.choices[0].message.content.strip()
     except Exception as e:
@@ -82,22 +82,38 @@ def call_deepseek(system_prompt: str, user_prompt: str) -> str:
         return ""
 
 
-def summarize_article(title: str, article_text: str) -> str:
-    """Summarize an article in Chinese using DeepSeek."""
+def parse_sections(text: str) -> tuple[str, str]:
+    """Parse DeepSeek response into (background, summary) using 【】 markers."""
+    bg_match = re.search(r"【背景】\s*(.+?)(?=【摘要】|$)", text, re.DOTALL)
+    sm_match = re.search(r"【摘要】\s*(.+)", text, re.DOTALL)
+    background = bg_match.group(1).strip() if bg_match else ""
+    summary = sm_match.group(1).strip() if sm_match else text.strip()
+    return background, summary
+
+
+def summarize_article(title: str, article_text: str) -> tuple[str, str]:
+    """Generate background + summary for an article in one DeepSeek call.
+    Returns (background, summary)."""
     if not article_text:
-        return ""
+        return "", ""
 
     system_prompt = (
         "你是一位资深的科技新闻编辑，擅长用简洁自然的中文提炼文章精华。"
         "你的读者是忙碌的开发者，他们希望快速了解行业动态。"
     )
     user_prompt = (
-        f"请用中文总结下面这篇文章的核心内容，3-5 句话即可。\n"
-        f"风格自然流畅，适合在邮件中阅读。保留关键数据和核心观点。\n\n"
+        f"请按以下两步处理这篇文章：\n\n"
+        f"第一步【背景】：用2-3句话介绍这篇文章涉及的公司、技术或话题的来龙去脉，"
+        f"帮助读者理解为什么这件事值得关注。\n\n"
+        f"第二步【摘要】：用3-5句话总结文章的核心内容和关键观点，保留重要数据。\n\n"
+        f"风格自然流畅，适合在邮件中阅读。\n\n"
         f"标题：{title}\n\n"
-        f"文章内容：\n{article_text[:MAX_ARTICLE_CHARS]}\n"
+        f"文章内容：\n{article_text[:MAX_ARTICLE_CHARS]}\n\n"
+        f"请严格按以下格式输出：\n"
+        f"【背景】\n（背景内容）\n\n【摘要】\n（摘要内容）"
     )
-    return call_deepseek(system_prompt, user_prompt)
+    raw = call_deepseek(system_prompt, user_prompt, max_tokens=800)
+    return parse_sections(raw)
 
 
 def summarize_comments(title: str, comments_text: str) -> str:
@@ -155,10 +171,13 @@ def main():
             # Fallback: use title as the only context
             article_text = f"[无法获取文章全文，仅提供标题]{title}"
 
-        # --- Article summary ---
-        print(f"  Generating article summary...")
-        article_summary = summarize_article(title, article_text)
-        print(f"  ✓ Summary: {len(article_summary)} chars")
+        # --- Article background + summary ---
+        print(f"  Generating background + summary...")
+        article_background, article_summary = summarize_article(title, article_text)
+        if article_background:
+            print(f"  ✓ Background: {len(article_background)} chars")
+        if article_summary:
+            print(f"  ✓ Summary: {len(article_summary)} chars")
 
         # --- Comments summary ---
         comments = story.get("comments", [])
@@ -178,6 +197,7 @@ def main():
             "descendants": story.get("descendants", 0),
             "by": story.get("by", ""),
             "source": story["source"],
+            "article_background": article_background,
             "article_summary": article_summary,
             "comment_summary": comment_summary,
         })

@@ -35,7 +35,6 @@ def build_markdown(data: dict) -> str:
         url = s.get("url", "")
         score = s.get("score", 0)
         descendants = s.get("descendants", 0)
-        article_summary = s.get("article_summary", "")
         comment_summary = s.get("comment_summary", "")
 
         # Title — linked if URL exists
@@ -48,7 +47,13 @@ def build_markdown(data: dict) -> str:
         lines.append(f"⬆ **{score}** points · 💬 **{descendants}** comments")
         lines.append("")
 
-        if article_summary:
+        if article_background := s.get("article_background", ""):
+            lines.append("### 🔍 背景")
+            lines.append("")
+            lines.append(article_background)
+            lines.append("")
+
+        if article_summary := s.get("article_summary", ""):
             lines.append("### 📝 文章摘要")
             lines.append("")
             lines.append(article_summary)
