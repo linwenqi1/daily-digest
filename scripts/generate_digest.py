@@ -60,9 +60,12 @@ def build_markdown(data: dict) -> str:
             lines.append(comment_summary)
             lines.append("")
 
-        lines.append("---")
-        lines.append("")
+        # Separator between stories (not after the last one)
+        if s["rank"] < len(stories):
+            lines.append("---")
+            lines.append("")
 
+    lines.append("")
     lines.append("*由 DeepSeek 自动生成 · Hacker News Top 10 摘要*")
     lines.append("")
 

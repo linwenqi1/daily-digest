@@ -109,6 +109,10 @@ def _build_story_card_html(lines: list[str]) -> str:
         title_line = lines[i][3:].strip()
         i += 1
 
+    # Defensive: skip if no title found (e.g. trailing separator, footer)
+    if not title_line:
+        return ""
+
     # Skip blank lines
     while i < len(lines) and not lines[i].strip():
         i += 1
@@ -136,7 +140,8 @@ def _build_story_card_html(lines: list[str]) -> str:
             i += 1
 
     # --- Build HTML ---
-    # Parse title with optional [text](url) link
+    # Parse title with markdown link:  N. [text](url)
+    # Greedy (.+) for URL correctly captures the last ) as the markdown closing paren
     link_match = re.match(r'^(\d+)\.\s*\[(.+)\]\((.+)\)$', title_line)
     if link_match:
         num = link_match.group(1)
