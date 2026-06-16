@@ -33,6 +33,7 @@ def build_markdown(data: dict) -> str:
     for s in stories:
         title = s["title"]
         url = s.get("url", "")
+        source = s.get("source", "")
         score = s.get("score", 0)
         descendants = s.get("descendants", 0)
         comment_summary = s.get("comment_summary", "")
@@ -44,8 +45,20 @@ def build_markdown(data: dict) -> str:
             lines.append(f"## {s['rank']}. {title}")
 
         lines.append("")
-        lines.append(f"⬆ **{score}** points · 💬 **{descendants}** comments")
-        lines.append("")
+        meta = [f"来源：**{source}**"] if source else []
+        if score:
+            meta.append(f"⬆ **{score}** points")
+        if descendants:
+            meta.append(f"💬 **{descendants}** comments")
+        if meta:
+            lines.append(" · ".join(meta))
+            lines.append("")
+
+        if article_concepts := s.get("article_concepts", ""):
+            lines.append("### 🔑 关键概念")
+            lines.append("")
+            lines.append(article_concepts)
+            lines.append("")
 
         if article_background := s.get("article_background", ""):
             lines.append("### 🔍 背景")
@@ -60,7 +73,7 @@ def build_markdown(data: dict) -> str:
             lines.append("")
 
         if comment_summary:
-            lines.append("### 💬 HN 社区讨论")
+            lines.append("### 💬 社区讨论")
             lines.append("")
             lines.append(comment_summary)
             lines.append("")
@@ -71,7 +84,8 @@ def build_markdown(data: dict) -> str:
             lines.append("")
 
     lines.append("")
-    lines.append("*由 DeepSeek 自动生成 · Hacker News Top 10 摘要*")
+    model = data.get("model", "DeepSeek")
+    lines.append(f"*由 {model} 自动生成 · 多源科技新闻摘要*")
     lines.append("")
 
     return "\n".join(lines)
