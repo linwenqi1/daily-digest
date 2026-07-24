@@ -1,9 +1,6 @@
 name: Daily Digest
 
 on:
-  schedule:
-    # Runs daily at 14:00 UTC, which is 22:00 Asia/Shanghai / Beijing time.
-    - cron: "0 14 * * *"
   workflow_dispatch: {}  # allow manual trigger
 
 permissions:
@@ -43,7 +40,6 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git pull --rebase origin "${{ github.ref_name }}"
           git add 'digests/*.md'
           git diff --staged --quiet || git commit -m "Daily digest $(date +%Y-%m-%d)"
           git push origin HEAD:"${{ github.ref_name }}"

@@ -26,8 +26,8 @@ Daily Digest 会每天抓取多源科技新闻，提取网页正文，用 DeepSe
 
 workflow 位于 `.github/workflows/daily-digest.yml`。
 
-- 定时触发：每天 `14:00 UTC`，也就是北京时间/上海时间 `22:00`。
-- 手动触发：GitHub Actions 页面中的 `workflow_dispatch`。
+- 由 Cloudflare Worker 通过 `workflow_dispatch` API 定时触发。
+- 也可在 GitHub Actions 页面手动触发。
 
 需要配置这些 repository secrets：
 
